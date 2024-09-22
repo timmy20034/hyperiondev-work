@@ -9,19 +9,41 @@ def create_connection():
     return db, cursor
 
 def add_new_book(db, cursor):
-   
-    # Inputing the information for the new book
-    book_id = int(input("Please enter the books id:"))
-    book_name = input("Please enter the new books title: ")
-    book_author = input("Please enter the author of the book:")
-    book_qty = int(input("How many of the book do we have?:"))
+    try:
+        # Inputting the information for the new book
+        book_id = int(input("Please enter the book's ID: "))
+        book_name = input("Please enter the new book's title: ")
+        book_author = input("Please enter the author of the book: ")
+        book_qty = int(input("How many of the book do we have?: "))
+
+        # Inserting the information into the table
+        cursor.execute('''
+            INSERT INTO book(id, title, author, qty)
+            VALUES(:id, :title, :author, :qty)''', 
+            {'id': book_id, 'title': book_name, 'author': book_author, 'qty': book_qty})
+        
+        db.commit()
+        print("Book added successfully.")
+
+    except sqlite3.IntegrityError as e:
+        # Handles specific integrity errors, like duplicate primary keys
+        print(f"Integrity Error: {e}. The book ID may already exist.")
+        db.rollback()  # Roll back the transaction to avoid partial data entry
     
-    # Iserting the information into the table
-    cursor.execute('''INSERT INTO book(id, title, author, qty)
-                   VALUES(:id, :title, :author, :qty)''',
-                   {'id':book_id, 'title':book_name, 'author':book_author,
-                     'qty':book_qty})
-    db.commit()
+    except sqlite3.Error as e:
+        # Handles other general SQLite errors
+        print(f"An error occurred: {e}")
+        db.rollback()
+    
+    except ValueError as e:
+        # Catches conversion errors (e.g., if user enters non-integer for book_id or book_qty)
+        print(f"Value Error: {e}. Please enter valid data types.")
+
+    except Exception as e:
+        # Catches any other unexpected errors
+        print(f"Unexpected error: {e}")
+        db.rollback()
+    
     return
 
 def update_book_info(db, cursor):
@@ -46,7 +68,7 @@ def delete_book(db, cursor):
     book_id = int(input("Please enter the id of the book you want to Delete:"))
 
     # Deleting the information from the table
-    cursor.execute('''DELETE FROM book WHERE id = ?''', (book_id))
+    cursor.execute('''DELETE FROM book WHERE id = ?''', (book_id,))
 
     db.commit()
     return
